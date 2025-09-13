@@ -29,7 +29,7 @@ def server_program():
         data_from_client = client_connected.recv(1024).decode()
 
         # Kliens bezárta a kapcsolatot
-        if not data_from_client:
+        if not data_from_client or "@" in data_from_client:
             print("_____________________________")
             print("A kapcsolat megszűnt a klienssel, várakozás...")
             client_name = ""
@@ -55,9 +55,8 @@ def server_program():
         # Szerver bezárása szerver kérésére
         if data == "@":
             client_connected.send("@ meguntam, szia".encode())
-            print("Szerver bezárása")
-            client_connected.close()
-            server_socket.close()
+            client_connected.shutdown(socket.SHUT_RDWR)  # minden irányban lezárjuk
+            client_connected.close()                       # majd lezárjuk a socketet
             break
 
         # Pletyka kiválasztása, eltávolítva a listából
@@ -69,3 +68,5 @@ def server_program():
 
         # Üzenet elküldése kliensnek
         client_connected.send(f"{data} {random_gossip}".strip().encode())
+        
+    print("Szerver bezárása")

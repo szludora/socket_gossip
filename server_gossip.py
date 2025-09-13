@@ -2,48 +2,70 @@ import socket
 import random
 import os
 
-
 def connection(server_socket):
     client_connected, client_address = server_socket.accept()
-    os.system('cls')
-    print("*************************************")
-    print(f"Üdvözöllek {client_address[0]}(localhost) : {client_address[1]} (port szám)!")
+    os.system('clear')  # MacOS; Windows: 'cls'
+    print("_____________________________")
+    print(f"Kapcsolódott: {client_address[0]}:{client_address[1]}")
+    print("_____________________________")
     return client_connected, client_address[1]
 
-
 def server_program():
-    server_socket = socket.socket()       
-    host = '127.0.0.1'                    
-    port = 9090                           
-    server_socket.bind((host, port))      
-    server_socket.listen(5)               
-    news_actual_from_client = []     
-    news_for_actual_client = []  
-    gossip = False        
-    random_gossip = ""    
+    server_socket = socket.socket()
+    host = '127.0.0.1'
+    port = 9090
+    server_socket.bind((host, port))
+    server_socket.listen(5)
+
+    news_from_client = []
+    news_for_client = []
+
     client_connected, port_kliens = connection(server_socket)
+    can_gossip = False
+    client_name = ""
     living_connection = True
-    actual_client_name = ""
-    
+
     while living_connection:
-        if(not actual_client_name):
-            data_from_client = client_connected.recv(1024).decode()
-            actual_client_name = data_from_client
-            client_connected.send(f'Szia {actual_client_name}!'.encode())
-
-        if gossip:
-            random_gossip = news_for_actual_client[random.randint(0, len(news_for_actual_client) - 1)]
-
         data_from_client = client_connected.recv(1024).decode()
-        
-        if data_from_client:
-            news_actual_from_client.append(data_from_client)
-            data = input(f"{actual_client_name}: {data_from_client} -> ")
-            client_connected.send(f'{data}, {random_gossip}'.encode())
 
-        else:
-            actual_client_name = ""
-            gossip = True
-            news_for_actual_client.extend(news_actual_from_client)
-            news_actual_from_client.clear()
+        # Kliens bezárta a kapcsolatot
+        if not data_from_client:
+            print("_____________________________")
+            print("A kapcsolat megszűnt a klienssel, várakozás...")
+            client_name = ""
+            can_gossip = True
+            news_for_client.extend(news_from_client)
+            news_from_client.clear()
             client_connected, port_kliens = connection(server_socket)
+            continue
+
+        # Első üzenet = név
+        if not client_name:
+            client_name = data_from_client
+            client_connected.send(f"Szia {client_name}".encode())
+            continue
+
+        # Gyűjtjük a hosszabb üzeneteket pletykának
+        if len(data_from_client.split()) > 1:
+            news_from_client.append(data_from_client)
+
+        print(f"{client_name}: {data_from_client}")
+        data = input("-> ")
+
+        # Szerver bezárása szerver kérésére
+        if data == "@":
+            client_connected.send("@ meguntam, szia".encode())
+            print("Szerver bezárása")
+            client_connected.close()
+            server_socket.close()
+            break
+
+        # Pletyka kiválasztása, eltávolítva a listából
+        random_gossip = ""
+        if can_gossip and news_for_client:
+            random_gossip = news_for_client.pop(
+                random.randint(0, len(news_for_client)-1)
+            )
+
+        # Üzenet elküldése kliensnek
+        client_connected.send(f"{data} {random_gossip}".strip().encode())

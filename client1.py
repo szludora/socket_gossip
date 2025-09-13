@@ -5,16 +5,15 @@ clientSocket = socket.socket()
 host = "127.0.0.1"
 port = 9090
 clientSocket.connect((host, port))
-# bekérek egy üzenetet
-data = input(' -> ')
-# amíg az üzenet nem a búcsúzásról szól, 
-# küldök és fogadom az üzeneteket, különben befejeződik a program
+data = input('Neved: ')
 while data.strip().lower() != 'bye':
-    # küldök üzenetet
+                
     clientSocket.send(data.encode())
-    # fogadom az üzenetet
     dataFromServer = clientSocket.recv(1024).decode()
     print("Szerver üzenete: ", dataFromServer)
-    # újra bekérek...
-    data = input(' -> ')
+    if(dataFromServer.__contains__('!')):
+        clientSocket.send('Velem te így ne beszélj!!!!! SZÉP NAPOT!!!'.encode())
+        clientSocket.close()
+    else:
+        data = input(' -> ')
 clientSocket.close()

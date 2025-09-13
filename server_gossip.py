@@ -12,37 +12,38 @@ def connection(server_socket):
 
 
 def server_program():
-    server_socket = socket.socket()         # Create a socket object
-    host = '127.0.0.1'                      # localhost
-    port = 9090                             # 1023-nál nagyobb szám
-    server_socket.bind((host, port))        # kapcsolás a porthoz (tuple a bemenet)
-    server_socket.listen(5)                 # Now wait for client connection.
-    news_updated = []       # legfrissebb hírek összesítve
-    news = []               # hírek - gyűjtés alatt
-    gossip = False          # az elején még nem pletykálunk
-    random_gossip = ""      # az elején még nincs mit...
-    # felvesszük a kapcsolatot a klienssel
+    server_socket = socket.socket()       
+    host = '127.0.0.1'                    
+    port = 9090                           
+    server_socket.bind((host, port))      
+    server_socket.listen(5)               
+    news_actual_from_client = []     
+    news_for_actual_client = []  
+    gossip = False        
+    random_gossip = ""    
     client_connected, port_kliens = connection(server_socket)
     living_connection = True
+    actual_client_name = ""
+    
     while living_connection:
-        # ha már pletyizhetek
+        if(not actual_client_name):
+            data_from_client = client_connected.recv(1024).decode()
+            actual_client_name = data_from_client
+            client_connected.send(f'Szia {actual_client_name}!'.encode())
+
         if gossip:
-            ...
-            # kiválasztok egy véletlen indexet (*)
-            # előző kliensektől kis pletyi, azaz a véletlen index alapján választunk hírt (*)
-        # fogadom a kliens üzenetét
+            random_gossip = news_for_actual_client[random.randint(0, len(news_for_actual_client) - 1)]
+
         data_from_client = client_connected.recv(1024).decode()
-        # ha kapok üzenetet...
+        
         if data_from_client:
-            # begyűjtöm a friss pletyit (*)
-            # összerakom a kliens üzenetét a friss pletyivel együtt
-            data = input(" -> ") + random_gossip
-            # üzenet küldése a kliensnek
-            client_connected.send(data.encode())
-        # amikor a kliens elköszönt (bye)
+            news_actual_from_client.append(data_from_client)
+            data = input(f"{actual_client_name}: {data_from_client} -> ")
+            client_connected.send(f'{data}, {random_gossip}'.encode())
+
         else:
-            # kapcsolódok az új klienshez
+            actual_client_name = ""
+            gossip = True
+            news_for_actual_client.extend(news_actual_from_client)
+            news_actual_from_client.clear()
             client_connected, port_kliens = connection(server_socket)
-            # most már pletyizhetek (*)
-            # új pletyiket frissítem, azaz kibővítem a listát a most gyűjtött hírekkel (*)
-            
